@@ -1,0 +1,1 @@
+# Preliminary-Diagnosis---Dermatoligical-Analysis
