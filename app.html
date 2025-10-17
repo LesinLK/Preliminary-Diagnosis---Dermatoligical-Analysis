@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Skin Disease Analyzer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root{
+            --color-primary: #1E90FF;
+            --color-accent: #36e6ac;
+            --color-text: #0F172A;
+            --color-muted: #475569;
+            --color-bg-content: rgba(255,255,255,0.95);
+            --color-bg-page: #F0F9FF;
+            --color-result-bg: #FFFFFF;
+        }
+        *{ box-sizing:border-box; margin: 0; padding: 0; }
+        html, body { height:100%; }
+        body {
+            color: var(--color-text);
+            font-family: sans-serif;
+            background-color: var(--color-bg-page);
+            background-image: url('https://user-gen-media-assets.s3.amazonaws.com/gemini_images/75f44bf1-e625-4260-8c5f-9d30ca15185d.png'); 
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        .page { min-height: 100%; display: flex; flex-direction: column; }
+        header.topbar {
+            background-color: rgba(255, 255, 255, 0.9);
+            position: sticky; top: 0; z-index: 1000;
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid #D1D5DB;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 20px;
+        }
+        .brand {
+            font-weight: 800; font-size: 18px; letter-spacing:.3px;
+            color: var(--color-primary);
+        }
+        .logout-btn {
+            border: none; border-radius: 999px; color:white; font-weight:700;
+            padding: 6px 12px; cursor:pointer; font-size: 13px;
+            background-color: var(--color-accent);
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .logout-btn:hover { transform: translateY(-1px); background-color: #2ECC71; }
+        .hero {
+            text-align: center; color: white; padding: 40px 20px;
+            background: rgba(0, 0, 0, 0.4); 
+        }
+        .hero h1 { font-size: 32px; font-weight: 800; margin: 0 0 10px 0; text-shadow: 1px 1px 2px #000; }
+        .hero p { font-size: 16px; margin: 0; text-shadow: 1px 1px 2px #000; }
+        main { flex:1; padding: 20px 10px; }
+        .content {
+            max-width: 680px; margin: 0 auto;
+            background: var(--color-bg-content);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        h1.title {
+            text-align: center; font-weight: 800; color: var(--color-primary);
+            font-size: 28px; margin: 0 0 15px 0;
+        }
+
+
+        /* ===== Choose File section with smooth transitions ===== */
+        .file-wrap {
+            border-radius: 10px;
+            padding: 6px;
+            transition: background-color .25s ease, box-shadow .25s ease;
+        }
+        .file-wrap:focus-within {
+            background-color: rgba(54, 230, 172, 0.06);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 2px solid var(--color-primary);
+            cursor: pointer;
+            font-size: 16px;
+            background-color: #fff;
+            transition: border-color .25s ease, box-shadow .25s ease, transform .2s ease;
+        }
+        input[type="file"]:hover {
+            border-color: var(--color-accent);
+            box-shadow: 0 0 6px rgba(30, 144, 255, 0.35);
+            transform: translateY(-1px);
+        }
+        input[type="file"]:focus,
+        input[type="file"]:focus-visible {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 4px rgba(54, 230, 172, 0.25);
+            transform: translateY(-1px);
+        }
+
+
+        .actions { display:flex; gap:10px; justify-content:center; align-items:center; margin-top: 10px; }
+        .btn {
+            border: none; border-radius: 6px; color:white; font-weight: 700; font-size: 15px;
+            padding: 10px 20px; cursor: pointer; min-width: 140px;
+            background-color: var(--color-primary);
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        .btn.alt { background-color: blue; }
+        .btn-alt:hover { background-color: violet; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.1); background-color: green; }
+        #result {
+            margin-top: 20px; padding: 15px; background-color: var(--color-result-bg); border-radius: 8px;
+            border: 1px solid #D1D5DB; font-size: 15px; line-height: 1.6; color: var(--color-text); 
+            opacity: 0; transform: translateY(-8px); transition: opacity .35s ease, transform .35s ease;
+        }
+        #result.show { opacity: 1; transform: translateY(0) }
+        #result p { margin: 5px 0; }
+        #result p strong { color: var(--color-primary); }
+
+
+        .camera-box { text-align:center; margin: 20px 0; }
+        #camera-stream { display:none; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.2); }
+        #capture-btn, #close-cam-btn { margin: 10px 5px; }
+        .filetype-select { margin: 10px 0; }
+        footer.site {
+            margin-top: auto; padding: 10px 20px; text-align: center; color: var(--color-muted);
+            background-color: rgba(255, 255, 255, 0.8); border-top: 1px solid #D1D5DB;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <header class="topbar">
+            <div class="brand">AI BASED TOOL FOR PRELIMINARY DIAGNOSIS OF DERMATOLOGICAL MANIFESTATIONS</div>
+            <a class="logout-btn" href="{{ url_for('logout') }}">Logout</a>
+        </header>
+        <section class="hero" role="banner" aria-label="Dermatology quote">
+            <div class="quote">
+                <h1><i>“Healthy skin tells a story of care, comfort, and confidence.”</i></h1>
+                <p><b>Triage early, act wisely, and let technology lend a gentle hand.</b></p>
+            </div>
+        </section>
+        <main>
+            <div class="content">
+                <h1 class="title"><b>SKIN DISEASE ANALYZER</b></h1>
+
+
+                <!-- Choose File section wrapped for transitions -->
+                <div class="file-wrap">
+                  <form id="uploadForm" action="/analyze" method="post" enctype="multipart/form-data">
+                    <input type="file" id="imageInput" name="image" accept="image/*" required><br>
+                    <div class="actions">
+                      <button class="btn" type="submit"><b>Analyze</b></button>
+                      <button class="btn alt" type="button" onclick="openCamera()">Open Camera</button>
+                    </div>
+                  </form>
+                </div>
+
+
+                <!-- Camera UI below -->
+                <div class="camera-box">
+                    <video id="camera-stream" width="320" height="240" autoplay></video><br>
+                    <button class="btn alt" id="capture-btn" style="display:none;" onclick="capturePhoto()">Capture Photo</button>
+                    <button class="btn" id="close-cam-btn" style="display:none;" onclick="closeCamera()">Close Camera</button>
+                    <div class="filetype-select" id="filetype-select" style="display:none;">
+                        <label>Save as: </label>
+                        <select id="filetype">
+                            <option value="png">PNG</option>
+                        </select>
+                        <button class="btn" onclick="saveAndInsert()">Insert for Analysis</button>
+                    </div>
+                    <canvas id="snapshot" width="320" height="240" style="display:none;"></canvas>
+                </div>
+
+
+                <div id="result"></div>
+            </div>
+        </main>
+        <footer class="site">
+            <small>"Preliminary, non-diagnostic insights for educational use only. Please see a licensed dermatologist for clinical care."</small>
+        </footer>
+    </div>
+    <script>
+    let stream = null;
+    function openCamera() {
+        navigator.mediaDevices.getUserMedia({ video: true })
+        .then(s => {
+            stream = s;
+            document.getElementById('camera-stream').srcObject = stream;
+            document.getElementById('camera-stream').style.display = 'block';
+            document.getElementById('capture-btn').style.display = 'inline-block';
+            document.getElementById('close-cam-btn').style.display = 'inline-block';
+        })
+        .catch(() => alert('Could not access camera.'));
+    }
+    function closeCamera() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+        document.getElementById('camera-stream').style.display = 'none';
+        document.getElementById('capture-btn').style.display = 'none';
+        document.getElementById('close-cam-btn').style.display = 'none';
+        document.getElementById('filetype-select').style.display = 'none';
+        document.getElementById('snapshot').style.display = 'none';
+    }
+    function capturePhoto() {
+        const video = document.getElementById('camera-stream');
+        const canvas = document.getElementById('snapshot');
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.style.display = 'block';
+        document.getElementById('filetype-select').style.display = 'block';
+    }
+    function saveAndInsert() {
+        const filetype = document.getElementById('filetype').value;
+        const canvas = document.getElementById('snapshot');
+        if (filetype === 'png') {
+            canvas.toBlob(blob => {
+                const file = new File([blob], 'captured.png', {type: 'image/png'});
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                document.getElementById('imageInput').files = dt.files;
+                alert('PNG inserted for analysis!');
+            }, 'image/png');
+        }
+        closeCamera();
+    }
+
+
+
+    // ===== Intercept Analyze form submit to keep result on same page =====
+    const uploadForm = document.getElementById('uploadForm');
+    const resultBox = document.getElementById('result');
+
+
+
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault(); // prevent full-page navigation
+      const form = e.currentTarget;
+      const fd = new FormData(form); // includes the image file selected in the input
+      const submitBtn = form.querySelector('button[type="submit"]');
+
+
+
+      // UI feedback
+      submitBtn.disabled = true;
+      const oldLabel = submitBtn.textContent;
+      submitBtn.textContent = 'Analyzing...';
+      resultBox.classList.remove('show');
+      resultBox.innerHTML = '';
+
+
+
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          body: fd,                  // let the browser set multipart/form-data with boundary
+          credentials: 'same-origin' // include session cookie for Flask auth
+        });
+
+
+
+        // Attempt to parse JSON from server
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (_) {
+          data = null;
+        }
+
+
+
+        if (!res.ok) {
+          const msg = (data && data.error) ? data.error : `Unexpected server error (${res.status})`;
+          throw new Error(msg);
+        }
+
+
+
+        // Render the result fields below the buttons
+        resultBox.innerHTML = `
+          <p><strong>Disease:</strong> ${data.disease ?? 'Unknown'}</p>
+          <p><strong>Causes:</strong> ${data.causes ?? 'Not available'}</p>
+          <p><strong>Precautions:</strong> ${data.precautions ?? 'Not available'}</p>
+          <p><strong>Tablets:</strong> ${data.tablets ?? 'Not available'}</p>
+          <p><strong>Creams:</strong> ${data.creams ?? 'Not available'}</p>
+        `;
+        resultBox.classList.add('show');
+        resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (err) {
+        resultBox.innerHTML = `<p style="color:#EF4444;"><strong>Error:</strong> ${err.message}</p>`;
+        resultBox.classList.add('show');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = oldLabel;
+      }
+    });
+
+    // ===== Rotating hero quotes every 5s =====
+    document.addEventListener('DOMContentLoaded', () => {
+      const quotes = [
+        'Healthy skin tells a story of care, comfort, and confidence.',
+        'Early triage empowers timely care and better outcomes.',
+        'Awareness is the first step toward healthier skin.',
+        'Technology assists; clinicians decide with expertise.'
+      ];
+      const quoteEl = document.querySelector('.hero h1 i');
+      let idx = 0;
+      if (quoteEl) {
+        quoteEl.textContent = `“${quotes[idx]}”`;
+        setInterval(() => {
+          idx = (idx + 1) % quotes.length;
+          quoteEl.textContent = `“${quotes[idx]}”`;
+        }, 5000);
+      }
+    });
+    </script>
+</body>
+</html>
